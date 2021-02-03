@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql://internal.mysql.taoqicar.com:3306/tenancy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet author="zero.one" id="2020051916256566-1">
+        <createTable tableName="tenant_data_source_info">
+            <column name="id" remarks="主键" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="tenant_code" type="varchar(20)"/>
+            <column name="url" remarks="开户流水号" type="VARCHAR(1024)"/>
+            <column name="database_name"  remarks="数据库" type="VARCHAR(60)"/>
+            <column name="user_name" remarks="用户名" type="VARCHAR(60)"/>
+            <column name="password" remarks="密码" type="VARCHAR(50)"/>
+            <column name="server_name" remarks="服务名" type="VARCHAR(50)"/>
+            <column name="type" remarks="数据库类型" type="VARCHAR(20)"/>
+            <column name="enable_override" remarks="是否重写" type="tinyint"/>
+            <column name="state" remarks="数据源状态" type="VARCHAR(20)"/>
+            <column name="create_time" remarks="创建时间" type="datetime"/>
+            <column name="modify_time" remarks="修改时间" type="datetime"/>
+            <column name="delete_status" type="tinyint"/>
+        </createTable>
+        <createIndex tableName="tenant_data_source_info" indexName="ix_tenantCode_serverName" unique="true" >
+            <column name="tenant_code" type="varchar(20)"/>
+            <column name="server_name" remarks="服务名" type="VARCHAR(50)"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

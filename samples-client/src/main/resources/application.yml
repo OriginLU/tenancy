@@ -1,0 +1,56 @@
+server:
+  tomcat:
+    max-threads: 1000
+    min-spare-threads: 30
+    uri-encoding: utf-8
+  port: 8889
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: tenancy-client
+
+  profiles:
+    active: dev
+
+  #  配置hikari数据源
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-test-query: select 1
+      connection-init-sql: select 1
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      auto-commit: true
+      idle-timeout: 300000
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 50MB
+#  jpa:
+#    #配置数据显示
+#    show-sql: true
+#    #配置mysql
+#    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+
+#eureka:
+#  instance:
+#    appname: tenancy-client
+#    instanceId: tenancy-client:${spring.application.instance-id:${random.value}}
+#    lease-renewal-interval-in-seconds: 5
+#    lease-expiration-duration-in-seconds: 10
+#  client:
+#    enabled: true
+#    fetch-registry: true
+#    register-with-eureka: true
+#    instance-info-replication-interval-seconds: 10
+#    registry-fetch-interval-seconds: 10
+
+tenancy:
+  client:
+    server-urls:
+      - 127.0.0.1:8888
+    retrieve-time: 5

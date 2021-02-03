@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet author="foo" id="2020051916256566-1">
+        <createTable tableName="open_account_record">
+            <column name="id" remarks="主键" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="req_serial_number" remarks="" type="VARCHAR(60)"/>
+            <column name="account_name" remarks="" type="VARCHAR(60)"/>
+            <column name="account_number" remarks="" type="VARCHAR(50)"/>
+            <column name="account_bank_name" remarks="" type="VARCHAR(50)"/>
+            <column name="tel_phone" remarks="" type="VARCHAR(50)"/>
+            <column name="credential_type" remarks="" type="varchar(20)"/>
+            <column name="credential_code" remarks="" type="varchar(60)"/>
+            <column name="open_account_status" remarks="" type="tinyint"/>
+            <column name="message" remarks="" type="text"/>
+            <column name="operation_user" remarks="" type="varchar(30)"/>
+            <column name="operation_id" remarks="" type="bigint"/>
+            <column name="remark" remarks="备注" type="varchar(128)"/>
+            <column name="create_time" remarks="" type="datetime"/>
+            <column name="modify_time" remarks="" type="datetime"/>
+            <column name="delete_status" type="tinyint"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
