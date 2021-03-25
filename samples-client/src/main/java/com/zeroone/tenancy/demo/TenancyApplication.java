@@ -8,7 +8,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableTenancyClient
-@EnableDiscoveryClient
+//@EnableDiscoveryClient
 //@EnableEurekaClient
 public class TenancyApplication {
 

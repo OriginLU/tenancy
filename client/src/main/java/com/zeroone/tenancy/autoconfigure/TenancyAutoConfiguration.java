@@ -22,8 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.mapping.DatabaseIdProvider;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
-import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
+import org.hibernate.MultiTenancyStrategy;
+import org.hibernate.cfg.AvailableSettings;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.boot.autoconfigure.ConfigurationCustomizer;
 import org.mybatis.spring.boot.autoconfigure.MybatisProperties;
@@ -36,6 +36,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.loadbalancer.RestTemplateCustomizer;
@@ -71,46 +72,46 @@ public class TenancyAutoConfiguration {
 
 
     @Bean
-    public TenancyMonitor tenancyMonitor(){
+    public TenancyMonitor tenancyMonitor() {
         return new TenancyMonitor();
     }
 
     @Bean
-    public DatasourceEventPublisher datasourceEventPublisher(ApplicationEventPublisher applicationEventPublisher){
+    public DatasourceEventPublisher datasourceEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         return new DatasourceEventPublisher(applicationEventPublisher);
     }
 
     @Bean
-    public DatasourceEventListener datasourceEventListener(TenancyMonitor tenancyMonitor){
+    public DatasourceEventListener datasourceEventListener(TenancyMonitor tenancyMonitor) {
         return new DatasourceEventListener(tenancyMonitor);
     }
 
     @Bean
-    public TenantDataSourceProvider tenantDataSourceProvider(DefaultListableBeanFactory defaultListableBeanFactory){
+    public TenantDataSourceProvider tenantDataSourceProvider(DefaultListableBeanFactory defaultListableBeanFactory) {
         return new TenantDataSourceProvider(defaultListableBeanFactory);
     }
 
     @Bean
-    public TenancyRemoteApi tenancyRemoteApi(TenancyClientConfig tenancyClientConfig, ObjectProvider<List<RestTemplateCustomizer>> restTemplateCustomizers){
-        return new TenancyRemoteApi(tenancyClientConfig,restTemplateCustomizers);
+    public TenancyRemoteApi tenancyRemoteApi(TenancyClientConfig tenancyClientConfig, ObjectProvider<List<RestTemplateCustomizer>> restTemplateCustomizers) {
+        return new TenancyRemoteApi(tenancyClientConfig, restTemplateCustomizers);
     }
 
 
     @Bean
     @ConditionalOnBean({TenantDataSourceProvider.class})
-    public TenancyInitializer tenancyInitializer(TenantDataSourceProvider tenantDataSourceProvider, TenancyRemoteApi tenancyRemoteApi,TenancyClientConfig tenancyClientConfig){
-        return new TenancyInitializer(tenantDataSourceProvider,tenancyRemoteApi,tenancyClientConfig);
+    public TenancyInitializer tenancyInitializer(TenantDataSourceProvider tenantDataSourceProvider, TenancyRemoteApi tenancyRemoteApi, TenancyClientConfig tenancyClientConfig) {
+        return new TenancyInitializer(tenantDataSourceProvider, tenancyRemoteApi, tenancyClientConfig);
     }
 
 
     @Bean
-    public TenancyDataSourceAspect tenancyDataSourceAspect(TenantDataSourceProvider tenantDataSourceProvider){
+    public TenancyDataSourceAspect tenancyDataSourceAspect(TenantDataSourceProvider tenantDataSourceProvider) {
         return new TenancyDataSourceAspect(tenantDataSourceProvider);
     }
 
     @Bean
-    public TenancyHealthChecker tenancyHealthChecker(TenantDataSourceProvider provider, TenancyMonitor tenancyMonitor, TenancyClientConfig tenancyClientConfig, TenancyRemoteApi tenancyRemoteApi){
-        return new TenancyHealthChecker(provider,tenancyMonitor, tenancyClientConfig,tenancyRemoteApi);
+    public TenancyHealthChecker tenancyHealthChecker(TenantDataSourceProvider provider, TenancyMonitor tenancyMonitor, TenancyClientConfig tenancyClientConfig, TenancyRemoteApi tenancyRemoteApi) {
+        return new TenancyHealthChecker(provider, tenancyMonitor, tenancyClientConfig, tenancyRemoteApi);
     }
 
 
@@ -165,7 +166,7 @@ public class TenancyAutoConfiguration {
                 log.debug("server has config excludes of {}", excludeUrls);
                 allExcludes.addAll(excludeUrls);
             }
-            registry.addInterceptor(new TenantInterceptor(tenantDataSourceProvider, tenantCodeMissHandlers,tenancyInitializer))
+            registry.addInterceptor(new TenantInterceptor(tenantDataSourceProvider, tenantCodeMissHandlers, tenancyInitializer))
                     .addPathPatterns("/**").excludePathPatterns(allExcludes.toArray(new String[0]));
         }
     }
@@ -188,7 +189,7 @@ public class TenancyAutoConfiguration {
         private final Method registerMethod;
 
 
-        public ApiResourceConfiguration(ApplicationContext applicationContext, RequestMappingHandlerMapping requestMappingHandlerMapping) throws Exception{
+        public ApiResourceConfiguration(ApplicationContext applicationContext, RequestMappingHandlerMapping requestMappingHandlerMapping) throws Exception {
             this.applicationContext = applicationContext;
             this.requestMappingHandlerMapping = requestMappingHandlerMapping;
             this.registerMethod = AbstractHandlerMethodMapping.class.getDeclaredMethod(DETECT_HANDLER_METHODS, Object.class);
@@ -200,7 +201,7 @@ public class TenancyAutoConfiguration {
 
             //扫描需要注册api
             Set<Class<?>> classes = ResourceUtils.getClasses(TENANCY_PACKAGE, TenancyApi.class);
-            if (CollectionUtils.isEmpty(classes)){
+            if (CollectionUtils.isEmpty(classes)) {
                 return;
             }
             //api注册
@@ -210,7 +211,7 @@ public class TenancyAutoConfiguration {
                 //对bean进行注入，使得可以使用@Autowired
                 applicationContext.getAutowireCapableBeanFactory().autowireBean(handler);
                 //mvc注册
-                registerMethod.invoke(requestMappingHandlerMapping,handler);
+                registerMethod.invoke(requestMappingHandlerMapping, handler);
             }
         }
     }
@@ -222,18 +223,23 @@ public class TenancyAutoConfiguration {
 
 
         @Bean
-        public MultiTenantConnectionProvider multiTenantConnectionProvider(TenantDataSourceProvider provider){
-            return new CustomMultiTenantConnectionProvider(provider);
-        }
+        public HibernatePropertiesCustomizer hibernatePropertiesCustomizer(TenantDataSourceProvider tenantDataSourceProvider){
 
-        @Bean
-        public CurrentTenantIdentifierResolver currentTenantIdentifierResolver(){
-            return new CustomMultiTenantIdentifierResolver();
+            return properties -> {
+                properties.put(AvailableSettings.MULTI_TENANT,
+                        MultiTenancyStrategy.DATABASE.name());
+
+                 properties.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER,
+                        new CustomMultiTenantIdentifierResolver());
+
+                 properties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER,
+                        new CustomMultiTenantConnectionProvider(tenantDataSourceProvider));
+            };
         }
     }
 
-    @org.springframework.context.annotation.Configuration
-    @ConditionalOnClass({ SqlSessionFactory.class, SqlSessionFactoryBean.class })
+    @Configuration
+    @ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactoryBean.class})
     @EnableConfigurationProperties(MybatisProperties.class)
     static class MybatisTenancyAutoConfiguration {
 
@@ -263,7 +269,7 @@ public class TenancyAutoConfiguration {
 
         /**
          * 在使用liquibase场景情况下，为了避免bean冲突出现需要自定义构造{@link RoutingDataSource}，liquibase构造时，会取唯一的datasource
-         * 详细查看@see {@link org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration.LiquibaseConfiguration#LiquibaseConfiguration(org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties, org.springframework.boot.autoconfigure.jdbc.DataSourceProperties, org.springframework.core.io.ResourceLoader, org.springframework.beans.factory.ObjectProvider, org.springframework.beans.factory.ObjectProvider)}
+         * 详细查看@see {@link org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration.LiquibaseConfiguration}
          */
         @Bean
         @ConditionalOnMissingBean

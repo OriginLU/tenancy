@@ -11,14 +11,12 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
+import org.springframework.aop.scope.ScopedProxyUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.context.properties.ConfigurationBeanFactoryMetadata;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -30,7 +28,10 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -57,13 +58,14 @@ public class TenantDataSourceProvider implements SmartInitializingSingleton, Dis
     private static final String LIQUIBASE_BEAN_NAME = "liquibase";
 
     /**
+     * 默认的liquibase名称
+     */
+    private static final String DATA_SOURCE = "dataSource";
+
+    /**
      * monitor lock
      */
     private final Object monitor = new Object();
-    /**
-     * 默认字符集
-     */
-    private String charset;
 
     /**
      * datasource默认bean名称
@@ -85,11 +87,6 @@ public class TenantDataSourceProvider implements SmartInitializingSingleton, Dis
      */
     private final DefaultListableBeanFactory defaultListableBeanFactory;
 
-    /**
-     * 配置bean工厂元数据信息
-     */
-    private final ConfigurationBeanFactoryMetadata beanFactoryMetadata;
-
 
     private final DatasourceEventPublisher eventPublisher;
 
@@ -103,15 +100,12 @@ public class TenantDataSourceProvider implements SmartInitializingSingleton, Dis
         this.liquibase = (SpringLiquibase) defaultListableBeanFactory.getBean(LIQUIBASE_BEAN_NAME);
         //2.获取bean配置
         this.dataSourceProperties = defaultListableBeanFactory.getBean(DataSourceProperties.class);
-        //3.获取beanFactoryMeta
-        this.beanFactoryMetadata = (ConfigurationBeanFactoryMetadata) defaultListableBeanFactory.getBean(ConfigurationBeanFactoryMetadata.BEAN_NAME);
-        //设置监控
+        //3.设置监控
         this.eventPublisher = defaultListableBeanFactory.getBean(DatasourceEventPublisher.class);
         //4.获取初始化bean名称
         String[] beanNames = defaultListableBeanFactory.getBeanNamesForType(dataSourceProperties.getType());
         //5.获取数据源配置工厂bean的名称，为后续初始化做准备
-        Arrays.stream(beanNames).filter(b -> getAnnotation(defaultListableBeanFactory.getBean(b), b) != null)
-                .findFirst().ifPresent(beanName -> this.beanName = beanName);
+        this.beanName = ScopedProxyUtils.getTargetBeanName(DATA_SOURCE);
         //6.添加默认数据源
         dataSourceMap.put(TenantIdentifierHelper.DEFAULT, (DataSource) defaultListableBeanFactory.getBean(beanName));
     }
@@ -322,7 +316,7 @@ public class TenantDataSourceProvider implements SmartInitializingSingleton, Dis
 
     /**
      * 构建数据源
-     * 使用spring自带的数据源生成工具@see {@link org.springframework.boot.jdbc.DataSourceBuilder}
+     * 使用spring自带的数据源生成工具@see {@link DataSourceBuilder}
      */
     public DataSource createDataSource(DataSourceInfo config) {
 
@@ -340,15 +334,6 @@ public class TenantDataSourceProvider implements SmartInitializingSingleton, Dis
         defaultListableBeanFactory.applyBeanPostProcessorsBeforeInitialization(dataSource, beanName);
 
         return dataSource;
-    }
-
-    private ConfigurationProperties getAnnotation(Object bean, String beanName) {
-
-        ConfigurationProperties annotation = this.beanFactoryMetadata.findFactoryAnnotation(beanName, ConfigurationProperties.class);
-        if (annotation == null) {
-            annotation = AnnotationUtils.findAnnotation(bean.getClass(), ConfigurationProperties.class);
-        }
-        return annotation;
     }
 
 
